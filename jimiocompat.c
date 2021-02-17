@@ -1,4 +1,8 @@
+#ifdef PLAN9
+#include <plan9.h>
+#else
 #include <string.h>
+#endif
 #include "jimiocompat.h"
 
 void Jim_SetResultErrno(Jim_Interp *interp, const char *msg)

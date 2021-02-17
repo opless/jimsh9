@@ -5,10 +5,13 @@
  * Cross-platform compatibility functions and types for I/O.
  * Currently used by jim-aio.c and jim-exec.c
  */
-
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
+#endif
 
 #include "jimautoconf.h"
 #include <jim.h>

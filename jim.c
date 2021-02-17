@@ -45,6 +45,9 @@
 #define _GNU_SOURCE             /* Mostly just for environ */
 #endif
 
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -56,10 +59,12 @@
 #include <errno.h>
 #include <time.h>
 #include <setjmp.h>
+#endif
 
 #include "jim.h"
 #include "jimautoconf.h"
 #include "utf8.h"
+
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -72,7 +77,9 @@
 #endif
 
 /* For INFINITY, even if math functions are not enabled */
+#ifndef PLAN9
 #include <math.h>
+#endif
 
 /* We may decide to switch to using $[...] after all, so leave it as an option */
 /*#define EXPRSUGAR_BRACKET*/
@@ -696,10 +703,14 @@ char *Jim_StrDupLen(const char *s, int l)
 /* Returns current time in microseconds */
 static jim_wide JimClock(void)
 {
+#ifdef PLAN9
+  return (jim_wide) (nsec()/1000);
+#else
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
     return (jim_wide) tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 }
 
 /* -----------------------------------------------------------------------------
@@ -11484,7 +11495,9 @@ int Jim_EvalFileGlobal(Jim_Interp *interp, const char *filename)
     return retval;
 }
 
+#ifndef PLAN9
 #include <sys/stat.h>
+#endif
 
 int Jim_EvalFile(Jim_Interp *interp, const char *filename)
 {
@@ -11492,7 +11505,11 @@ int Jim_EvalFile(Jim_Interp *interp, const char *filename)
     char *buf;
     Jim_Obj *scriptObjPtr;
     Jim_Obj *prevScriptObj;
+#ifdef PLAN9
+    nein_stat sb;
+#else
     struct stat sb;
+#endif
     int retcode;
     int readlen;
 

@@ -39,8 +39,12 @@
  * See the file "tcl.license.terms" for information on usage and redistribution of
  * this file, and for a DISCLAIMER OF ALL WARRANTIES.
  */
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <ctype.h>
 #include <string.h>
+#endif
 
 #include <jim.h>
 #include "utf8.h"

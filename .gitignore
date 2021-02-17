@@ -7,7 +7,7 @@ Tcl.html
 jimautoconf.h
 jimautoconfext.h
 jim-config.h
-_*.c
+#_*.c
 jim-stdlib.c
 jim-tclcompat.c
 jim-tree.c
@@ -26,3 +26,6 @@ build-jim-ext
 *.gcov
 coverage*.html
 jimtcl.pc
+*.6
+z
+s

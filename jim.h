@@ -69,11 +69,13 @@
 extern "C" {
 #endif
 
+#ifndef PLAN9
 #include <time.h>
 #include <limits.h>
 #include <stdio.h>  /* for the FILE typedef definition */
 #include <stdlib.h> /* In order to export the Jim_Free() macro */
 #include <stdarg.h> /* In order to get type va_list */
+#endif
 
 /* -----------------------------------------------------------------------------
  * System configuration

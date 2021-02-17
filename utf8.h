@@ -26,7 +26,9 @@ extern "C" {
 int utf8_fromunicode(char *p, unsigned uc);
 
 #ifndef JIM_UTF8
+#ifndef PLAN9
 #include <ctype.h>
+#endif
 
 /* No utf-8 support. 1 byte = 1 char */
 #define utf8_strlen(S, B) ((B) < 0 ? (int)strlen(S) : (B))

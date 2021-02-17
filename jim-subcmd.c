@@ -5,8 +5,12 @@
  * (c) 2008 Steve Bennett <steveb@workware.net.au>
  *
  */
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <stdio.h>
 #include <string.h>
+#endif
 
 #include <jim-subcmd.h>
 

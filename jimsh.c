@@ -32,10 +32,13 @@
  * are those of the authors and should not be interpreted as representing
  * official policies, either expressed or implied, of the Jim Tcl Project.
  */
-
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 #include "jim.h"
 #include "jimautoconf.h"

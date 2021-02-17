@@ -5,12 +5,15 @@
  *
  * See LICENCE for licence details.
  */
-
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#endif
 #include "utf8.h"
 
 /* This one is always implemented */

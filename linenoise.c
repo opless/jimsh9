@@ -1,5 +1,6 @@
 #ifndef STRINGBUF_H
 #define STRINGBUF_H
+#include "plan9.h"
 
 /* (c) 2017 Workware Systems Pty Ltd  -- All Rights Reserved */
 
@@ -131,11 +132,14 @@ char *sb_to_string(stringbuf *sb);
 #endif
 
 #endif
+
+#ifndef PLAN9
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
+#endif
 
 #ifndef STRINGBUF_H
 #include "stringbuf.h"
@@ -417,6 +421,8 @@ void sb_clear(stringbuf *sb)
 #define strdup _strdup
 #define snprintf _snprintf
 #endif
+#elif PLAN9
+/* do nothing */
 #else
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -428,6 +434,7 @@ void sb_clear(stringbuf *sb)
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifndef PLAN9
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -437,6 +444,7 @@ void sb_clear(stringbuf *sb)
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#endif
 
 #include "linenoise.h"
 #ifndef STRINGBUF_H
@@ -611,6 +619,7 @@ donedigits:
     return parser->state;
 }
 
+
 /*#define DEBUG_REFRESHLINE*/
 
 #ifdef DEBUG_REFRESHLINE
@@ -639,7 +648,7 @@ static void DRL_STR(const char *str)
     }
 }
 #else
-#define DRL(ARGS...)
+//#define DRL(ARGS...)
 #define DRL_CHAR(ch)
 #define DRL_STR(str)
 #endif
@@ -648,9 +657,11 @@ static void DRL_STR(const char *str)
 #include "linenoise-win32.c"
 #endif
 
-#if defined(USE_TERMIOS)
+#if defined(USE_TERMIOS) || defined(PLAN9)
 static void linenoiseAtExit(void);
+#ifndef PLAN9
 static struct termios orig_termios; /* in order to restore at exit */
+#endif
 static int rawmode = 0; /* for atexit() function to check if restore is needed*/
 static int atexit_registered = 0; /* register atexit just 1 time */
 
@@ -666,10 +677,36 @@ static int isUnsupportedTerm(void) {
                 return 1;
             }
         }
+    } else { // TERM UNSET
+	    return 1;
     }
     return 0;
 }
 
+
+#ifdef PLAN9
+int _linenoise_consctl=-1;
+int _gfx_context =0;
+static int enableRawMode(struct current *current) {
+  if(!isatty(0) || !isatty(1) || isUnsupportedTerm()) {
+    errno=ENOTTY;
+    return -1;
+  }
+  if(!atexit_registered) { 
+    atexit(linenoiseAtExit); 
+    atexit_registered = 1; 
+  }
+  /* now open /dev/consctl */
+  _linenoise_consctl = open("/dev/consctl",OWRITE);
+  if(_linenoise_consctl>=0) {
+    int rc=write(_linenoise_consctl,"rawon",5); 
+    rawmode = 1; 
+    return 0; 
+  }
+  errno = ENOTTY;
+  return -1;
+}
+#else
 static int enableRawMode(struct current *current) {
     struct termios raw;
 
@@ -710,18 +747,29 @@ fatal:
     rawmode = 1;
     return 0;
 }
+#endif
 
 static void disableRawMode(struct current *current) {
+#ifdef PLAN9
+  rawmode = 0;
+  close(_linenoise_consctl);
+#else
     /* Don't even check the return value as it's too late. */
     if (rawmode && tcsetattr(current->fd,TCSADRAIN,&orig_termios) != -1)
         rawmode = 0;
+#endif
 }
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
 static void linenoiseAtExit(void) {
+#ifdef PLAN9
+    if(rawmode)
+      close(_linenoise_consctl);
+#else
     if (rawmode) {
         tcsetattr(STDIN_FILENO, TCSADRAIN, &orig_termios);
     }
+#endif
     linenoiseHistoryFree();
 }
 
@@ -743,7 +791,11 @@ static void outputChars(struct current *current, const char *buf, int len)
         sb_append_len(current->output, buf, len);
     }
     else {
+#ifdef PLAN9
+        write(1, buf, len);
+#else
         IGNORE_RC(write(current->fd, buf, len));
+#endif
     }
 }
 
@@ -820,6 +872,14 @@ void linenoiseClearScreen(void)
  */
 static int fd_read_char(int fd, int timeout)
 {
+#ifdef PLAN9
+  // TODO: maybe do something about timeouts
+  unsigned char c;
+  if (read(fd, &c, 1) != 1) {
+    return -1;
+  }
+  return c;
+#else
     struct pollfd p;
     unsigned char c;
 
@@ -834,6 +894,7 @@ static int fd_read_char(int fd, int timeout)
         return -1;
     }
     return c;
+#endif
 }
 
 /**
@@ -842,6 +903,9 @@ static int fd_read_char(int fd, int timeout)
  */
 static int fd_read(struct current *current)
 {
+#ifdef PLAN9
+    return fd_read_char(0, -1);
+#else
 #ifdef USE_UTF8
     char buf[MAX_UTF8_LEN];
     int n;
@@ -866,6 +930,7 @@ static int fd_read(struct current *current)
 #else
     return fd_read_char(current->fd, -1);
 #endif
+#endif
 }
 
 
@@ -886,7 +951,11 @@ static int queryCursor(struct current *current, int* cols)
 
     /* Parse the response: ESC [ rows ; cols R */
     initParseEscapeSeq(&parser, 'R');
+#ifdef PLAN9
+    while ((ch = fd_read_char(0, 100)) > 0) {
+#else
     while ((ch = fd_read_char(current->fd, 100)) > 0) {
+#endif	    
         switch (parseEscapeSequence(&parser, ch)) {
             default:
                 continue;
@@ -911,11 +980,12 @@ static int queryCursor(struct current *current, int* cols)
 static int getWindowSize(struct current *current)
 {
     struct winsize ws;
-
+#ifndef PLAN9
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col != 0) {
         current->cols = ws.ws_col;
         return 0;
     }
+#endif
 
     /* Failed to query the window size. Perhaps we are on a serial terminal.
      * Try to query the width by sending the cursor as far to the right
@@ -1080,6 +1150,7 @@ static int char_display_width(int ch)
     }
 }
 
+
 #ifndef NO_COMPLETION
 static linenoiseCompletionCallback *completionCallback = NULL;
 static void *completionUserdata = NULL;
@@ -1108,7 +1179,12 @@ static int completeLine(struct current *current) {
 
     completionCallback(sb_str(current->buf),&lc,completionUserdata);
     if (lc.len == 0) {
+#ifdef PLAN9
+        fprintf(stderr,"\x07");
+	fflush(stderr);
+#else
         beep();
+#endif
     } else {
         size_t stop = 0, i = 0;
 
@@ -1129,7 +1205,14 @@ static int completeLine(struct current *current) {
             switch(c) {
                 case '\t': /* tab */
                     i = (i+1) % (lc.len+1);
-                    if (i == lc.len) beep();
+                    if (i == lc.len) {
+#ifdef PLAN9
+                      fprintf(stderr,"\x07");
+	              fflush(stderr);
+#else
+                      beep();
+#endif
+		    }
                     break;
                 case CHAR_ESCAPE: /* escape */
                     /* Re-show original buffer */
@@ -1193,7 +1276,7 @@ static const char *reduceSingleBuf(const char *buf, int availcols, int *cursor_p
     int new_cursor_pos = *cursor_pos;
     const char *pt = buf;
 
-    DRL("reduceSingleBuf: availcols=%d, cursor_pos=%d\n", availcols, *cursor_pos);
+    //DRL("reduceSingleBuf: availcols=%d, cursor_pos=%d\n", availcols, *cursor_pos);
 
     while (*pt) {
         int ch;
@@ -1228,9 +1311,9 @@ static const char *reduceSingleBuf(const char *buf, int availcols, int *cursor_p
         }
 
     }
-    DRL("<snip>");
-    DRL_STR(buf);
-    DRL("\nafter reduce, needcols=%d, new_cursor_pos=%d\n", needcols, new_cursor_pos);
+    //DRL("<snip>");
+    //DRL_STR(buf);
+    //DRL("\nafter reduce, needcols=%d, new_cursor_pos=%d\n", needcols, new_cursor_pos);
 
     /* Done, now new_cursor_pos contains the adjusted cursor position
      * and buf points to he adjusted start
@@ -1267,7 +1350,7 @@ static int refreshShowHints(struct current *current, const char *buf, int availc
                     int props[3] = { bold, color, 49 }; /* bold, color, fgnormal */
                     setOutputHighlight(current, props, 3);
                 }
-                DRL("<hint bold=%d,color=%d>", bold, color);
+                //DRL("<hint bold=%d,color=%d>", bold, color);
                 pt = hint;
                 while (*pt) {
                     int ch;
@@ -1275,7 +1358,7 @@ static int refreshShowHints(struct current *current, const char *buf, int availc
                     int width = char_display_width(ch);
 
                     if (width >= availcols) {
-                        DRL("<hinteol>");
+                        //DRL("<hinteol>");
                         break;
                     }
                     DRL_CHAR(ch);
@@ -1294,7 +1377,35 @@ static int refreshShowHints(struct current *current, const char *buf, int availc
     }
     return rc;
 }
+#ifdef PLAN9
+static void refreshStart(struct current *current)
+{
+    /* We accumulate all output here */
+    assert(current->output == NULL);
+    current->output = sb_alloc();
+}
 
+static void refreshEnd(struct current *current)
+{
+    /* Output everything at once */
+    write(1, sb_str(current->output), sb_len(current->output));
+    sb_free(current->output);
+    current->output = NULL;
+}
+
+static void refreshStartChars(struct current *current)
+{
+}
+
+static void refreshNewline(struct current *current)
+{
+    outputChars(current, "\n", 1);
+}
+
+static void refreshEndChars(struct current *current)
+{
+}
+#endif
 #ifdef USE_TERMIOS
 static void refreshStart(struct current *current)
 {
@@ -1349,7 +1460,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
 
     refreshStart(current);
 
-    DRL("wincols=%d, cursor_pos=%d, nrows=%d, rpos=%d\n", current->cols, cursor_pos, current->nrows, current->rpos);
+    //DRL("wincols=%d, cursor_pos=%d, nrows=%d, rpos=%d\n", current->cols, cursor_pos, current->nrows, current->rpos);
 
     /* Here is the plan:
      * (a) move the the bottom row, going down the appropriate number of lines
@@ -1364,19 +1475,19 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
 
     /* (a) - The cursor is currently at row rpos */
     cursorDown(current, current->nrows - current->rpos - 1);
-    DRL("<cud=%d>", current->nrows - current->rpos - 1);
+    //DRL("<cud=%d>", current->nrows - current->rpos - 1);
 
     /* (b), (c) - Erase lines upwards until we get to the first row */
     for (i = 0; i < current->nrows; i++) {
         if (i) {
-            DRL("<cup>");
+            //DRL("<cup>");
             cursorUp(current, 1);
         }
-        DRL("<clearline>");
+        //DRL("<clearline>");
         cursorToLeft(current);
         eraseEol(current);
     }
-    DRL("\n");
+    //DRL("\n");
 
     /* (d) First output the prompt. control sequences don't take up display space */
     pt = prompt;
@@ -1395,7 +1506,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
             /* The start of an escape sequence, so not visible */
             visible = 0;
             initParseEscapeSeq(&parser, 'm');
-            DRL("<esc-seq-start>");
+            //DRL("<esc-seq-start>");
         }
 
         if (ch == '\n' || ch == '\r') {
@@ -1417,7 +1528,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
                 displayrow++;
             }
 
-            DRL_CHAR(ch);
+            //DRL_CHAR(ch);
 #ifdef USE_WINCONSOLE
             if (visible) {
                 outputChars(current, pt, n);
@@ -1433,10 +1544,10 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
                 case EP_END:
                     visible = 1;
                     setOutputHighlight(current, parser.props, parser.numprops);
-                    DRL("<esc-seq-end,numprops=%d>", parser.numprops);
+                    //DRL("<esc-seq-end,numprops=%d>", parser.numprops);
                     break;
                 case EP_ERROR:
-                    DRL("<esc-seq-err>");
+                    //DRL("<esc-seq-err>");
                     visible = 1;
                     break;
             }
@@ -1444,7 +1555,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
     }
 
     /* Now we are at the first line with all lines erased */
-    DRL("\nafter prompt: displaycol=%d, displayrow=%d\n", displaycol, displayrow);
+    //DRL("\nafter prompt: displaycol=%d, displayrow=%d\n", displaycol, displayrow);
 
 
     /* (e) output the buffer, counting cols and rows */
@@ -1474,7 +1585,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
         if (displaycol + width >= current->cols) {
             if (mlmode == 0) {
                 /* In single line mode stop once we print as much as we can on one line */
-                DRL("<slmode>");
+                //DRL("<slmode>");
                 break;
             }
             /* need to wrap to the next line since it doesn't fit */
@@ -1488,7 +1599,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
             cursorcol = displaycol;
             cursorrow = displayrow;
             notecursor = 0;
-            DRL("<cursor>");
+            //DRL("<cursor>");
         }
 
         displaycol += width;
@@ -1499,9 +1610,9 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
         else {
             outputChars(current, pt, n);
         }
-        DRL_CHAR(ch);
+        //DRL_CHAR(ch);
         if (width != 1) {
-            DRL("<w=%d>", width);
+            //DRL("<w=%d>", width);
         }
 
         pt += n;
@@ -1510,12 +1621,12 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
 
     /* If we didn't see the cursor, it is at the current location */
     if (notecursor) {
-        DRL("<cursor>");
+        //DRL("<cursor>");
         cursorcol = displaycol;
         cursorrow = displayrow;
     }
 
-    DRL("\nafter buf: displaycol=%d, displayrow=%d, cursorcol=%d, cursorrow=%d\n", displaycol, displayrow, cursorcol, cursorrow);
+    //DRL("\nafter buf: displaycol=%d, displayrow=%d, cursorcol=%d, cursorrow=%d\n", displaycol, displayrow, cursorcol, cursorrow);
 
     /* (f) show hints */
     hint = refreshShowHints(current, buf, current->cols - displaycol, 1);
@@ -1530,7 +1641,7 @@ static void refreshLineAlt(struct current *current, const char *prompt, const ch
         current->colsright = 0;
         current->colsleft = 0;
     }
-    DRL("\nafter hints: colsleft=%d, colsright=%d\n\n", current->colsleft, current->colsright);
+    //DRL("\nafter hints: colsleft=%d, colsright=%d\n\n", current->colsleft, current->colsright);
 
     refreshEndChars(current);
 
@@ -1771,6 +1882,11 @@ static int reverseIncrementalSearch(struct current *current)
             c = check_special(current->fd);
         }
 #endif
+#ifdef PLAN9
+        if (c == CHAR_ESCAPE) {
+            c = check_special(0);
+        }
+#endif
         if (c == ctrl('P') || c == SPECIAL_UP) {
             /* Search for the previous (earlier) match */
             if (searchpos > 0) {
@@ -1873,6 +1989,11 @@ static int linenoiseEdit(struct current *current) {
 #ifdef USE_TERMIOS
         if (c == CHAR_ESCAPE) {   /* escape sequence */
             c = check_special(current->fd);
+        }
+#endif
+#ifdef PLAN9
+        if (c == CHAR_ESCAPE) {   /* escape sequence */
+            c = check_special(0);
         }
 #endif
         if (c == -1) {

@@ -1,5 +1,9 @@
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <errno.h>
 #include <string.h>
+#endif
 
 #include "jimautoconf.h"
 #include <jim.h>
@@ -191,7 +195,11 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
 #ifdef USE_LINENOISE
     const char *home;
 
+#ifdef PLAN9
+    home = getenv("home");
+#else
     home = getenv("HOME");
+#endif
     if (home && isatty(STDIN_FILENO)) {
         int history_len = strlen(home) + sizeof("/.jim_history");
         history_file = Jim_Alloc(history_len);
