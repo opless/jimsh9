@@ -4,7 +4,6 @@ tags
 /examples.api/Makefile
 /tests/Makefile
 Tcl.html
-jimautoconf.h
 jimautoconfext.h
 jim-config.h
 #_*.c

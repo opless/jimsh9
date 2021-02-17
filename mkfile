@@ -6,12 +6,14 @@ BIN=jimsh
 DEFAULTOBJ=\
 	_load-static-exts.$O \
 	jim-subcmd.$O jim-interactive.$O jim-format.$O jim.$O utf8.$O jimregexp.$O jimiocompat.$O \
-	plan9.$O \
-	_initjimsh.$O _stdlib.$O linenoise.$O
+	plan9.$O _stdlib.$O linenoise.$O
+
+INITEXT=_initjimsh.$O 
 
 EXTENSIONS=\
-	jim-tty.$O \
-	jim-aio.$O \
+	jim-aio.$O 
+
+TODO=\
 	jim-array.$O \
 	jim-clock.$O \
 	jim-eventloop.$O \
@@ -35,10 +37,12 @@ EXTENSIONS=\
 	tclcompat.$O \
 	tree.$O
 
+# WONT PORT
+# this is a posix-y thing, we have no need for it here. jim-tty.$O 
 CFLAGS=-c -p -DPLAN9 -DHAVE_NO_AUTOCONF -DUSE_LINENOISE -I.
 
 
-$BIN: $DEFAULTOBJ jimsh.$O
+$BIN: $DEFAULTOBJ $EXTENSIONS $INITEXT jimsh.$O
 	$LD -o $target $prereq
 
 

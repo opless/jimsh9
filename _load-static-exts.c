@@ -8,10 +8,8 @@ int Jim_InitStaticExtensions(Jim_Interp *interp)
 
 {
 	extern int Jim_stdlibInit(Jim_Interp *);
-	Jim_stdlibInit(interp);
-	/*
-	extern int Jim_stdlibInit(Jim_Interp *);
 	extern int Jim_aioInit(Jim_Interp *);
+	/*
 	extern int Jim_arrayInit(Jim_Interp *);
 	extern int Jim_clockInit(Jim_Interp *);
 	extern int Jim_eventloopInit(Jim_Interp *);
@@ -33,8 +31,10 @@ int Jim_InitStaticExtensions(Jim_Interp *interp)
 	extern int Jim_tclcompatInit(Jim_Interp *);
 	extern int Jim_globInit(Jim_Interp *);
 	extern int Jim_treeInit(Jim_Interp *);
+	*/
 	Jim_stdlibInit(interp);
 	Jim_aioInit(interp);
+	/*
 	Jim_arrayInit(interp);
 	Jim_clockInit(interp);
 	Jim_eventloopInit(interp);

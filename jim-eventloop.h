@@ -48,7 +48,9 @@
 extern "C" {
 #endif
 
+#ifndef PLAN9
 #include <stdio.h>
+#endif
 
 typedef int Jim_FileProc(Jim_Interp *interp, void *clientData, int mask);
 typedef int Jim_SignalProc(Jim_Interp *interp, void *clientData, void *msg);

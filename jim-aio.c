@@ -42,11 +42,15 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+
+#ifndef PLAN9
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <assert.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #include <sys/stat.h>
