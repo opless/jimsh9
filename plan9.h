@@ -75,6 +75,33 @@ int isatty(int fd);
 
 extern char **environ;
 
+
+/* The tm struct isn't in Plan9, but a similar struct^Wtypedef is Tm
+ * The below is a renamed Tm struct, so we can manipulate it in the same way as in ANSI C
+ *
+ * caveat: All the date/time functions that are used in ANSI C are also slightly different
+ *         as they don't use pointers for the time_t value.
+ *         strftime doesn't exist either, but we can code for that, elsewhere.
+ *
+ */
+
+struct tm {
+  int tm_sec;    /* Seconds (0-60) */
+  int tm_min;    /* Minutes (0-59) */
+  int tm_hour;   /* Hours (0-23) */
+  int tm_mday;   /* Day of the month (1-31) */
+  int tm_mon;    /* Month (0-11) */
+  int tm_year;   /* Year - 1900 */
+  int tm_wday;   /* Day of the week (0-6, Sunday = 0) */
+  int tm_yday;   /* Day in the year (0-365, 1 Jan = 0) */
+  //int tm_isdst;  /* NEIN Daylight saving time */
+  char zone[4];  /* 9 time zone name */
+  int  tzoff;    /* 9 time zone delta from GMT */
+};
+/* strftime adapted from kvik's lua implementation  */
+size_t strftime(char *destination, size_t destination_max, char *format, struct tm *fake_tm);
+
+
 #define Jim_Errno() errno
 
 #define JIM_VERSION 80

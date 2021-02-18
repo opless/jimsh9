@@ -11,11 +11,12 @@ DEFAULTOBJ=\
 INITEXT=_initjimsh.$O 
 
 EXTENSIONS=\
-	jim-aio.$O 
-
-TODO=\
+	jim-aio.$O \
 	jim-array.$O \
 	jim-clock.$O \
+
+
+TODO=\
 	jim-eventloop.$O \
 	jim-exec.$O \
 	jim-file.$O \
@@ -39,7 +40,8 @@ TODO=\
 
 # WONT PORT
 # this is a posix-y thing, we have no need for it here. jim-tty.$O 
-CFLAGS=-c -p -DPLAN9 -DHAVE_NO_AUTOCONF -DUSE_LINENOISE -I.
+CFLAGS=-c -p -DPLAN9 -I.
+#CFLAGS=-c -p -DPLAN9 -DHAVE_NO_AUTOCONF -DUSE_LINENOISE -I.
 
 
 $BIN: $DEFAULTOBJ $EXTENSIONS $INITEXT jimsh.$O
@@ -50,4 +52,4 @@ $BIN: $DEFAULTOBJ $EXTENSIONS $INITEXT jimsh.$O
 	$CC $CFLAGS $stem.c
 
 clean:V:
-	rm $BINOBJ $BIN
+	rm *6 *a $BIN

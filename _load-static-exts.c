@@ -9,9 +9,9 @@ int Jim_InitStaticExtensions(Jim_Interp *interp)
 {
 	extern int Jim_stdlibInit(Jim_Interp *);
 	extern int Jim_aioInit(Jim_Interp *);
-	/*
 	extern int Jim_arrayInit(Jim_Interp *);
 	extern int Jim_clockInit(Jim_Interp *);
+	/*
 	extern int Jim_eventloopInit(Jim_Interp *);
 	extern int Jim_execInit(Jim_Interp *);
 	extern int Jim_fileInit(Jim_Interp *);
@@ -34,9 +34,9 @@ int Jim_InitStaticExtensions(Jim_Interp *interp)
 	*/
 	Jim_stdlibInit(interp);
 	Jim_aioInit(interp);
-	/*
 	Jim_arrayInit(interp);
 	Jim_clockInit(interp);
+	/*
 	Jim_eventloopInit(interp);
 	Jim_execInit(interp);
 	Jim_fileInit(interp);

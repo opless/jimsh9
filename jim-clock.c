@@ -18,10 +18,12 @@
 #define _GNU_SOURCE
 #endif
 
+#ifndef PLAN9
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#endif
 
 #include <jim-subcmd.h>
 
@@ -85,7 +87,11 @@ static int clock_cmd_format(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
     }
 
     t = seconds;
+#ifdef PLAN9
+    tm =(struct tm *)(options.gmt ? gmtime(t) : localtime(t));
+#else
     tm = options.gmt ? gmtime(&t) : localtime(&t);
+#endif
 
     if (tm == NULL || strftime(buf, sizeof(buf), options.format, tm) == 0) {
         Jim_SetResultString(interp, "format string too long or invalid time", -1);
@@ -158,23 +164,31 @@ static int clock_cmd_seconds(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static int clock_cmd_micros(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+#ifdef PLAN9
+    vlong t = nsec() / 1000;
+    Jim_SetResultInt(interp, (jim_wide) t);
+#else
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
 
     Jim_SetResultInt(interp, (jim_wide) tv.tv_sec * 1000000 + tv.tv_usec);
-
+#endif
     return JIM_OK;
 }
 
 static int clock_cmd_millis(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+#ifdef PLAN9
+    vlong t = nsec() / 1000000;
+    Jim_SetResultInt(interp, (jim_wide) t);
+#else
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
 
     Jim_SetResultInt(interp, (jim_wide) tv.tv_sec * 1000 + tv.tv_usec / 1000);
-
+#endif
     return JIM_OK;
 }
 

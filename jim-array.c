@@ -43,11 +43,15 @@
  * express or implied warranty.
  */
 
+#ifdef PLAN9
+#include "plan9.h"
+#else
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#endif
 
 #include <jim-subcmd.h>
 
