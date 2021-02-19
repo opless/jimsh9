@@ -73,7 +73,6 @@ strftime(char *destination, size_t destination_max, char *format, struct tm *fak
       mod = s[0];
       s++;
     }
-    printf("** s[0] = '%c'\n",s[0]);
     switch(s[0]){
     case 'n': fmtprint(&f, "\n"); break;
     case 't': fmtprint(&f, "\t"); break;
@@ -120,10 +119,8 @@ strftime(char *destination, size_t destination_max, char *format, struct tm *fak
     mod = 0;
   }
   s = fmtstrflush(&f);
-  printf("** s = '%s'\n",s);
   strncpy(destination,s,destination_max);
   free(s);
-  printf("** dest = '%s'\n",destination);
   return strlen(destination);
 }
 
