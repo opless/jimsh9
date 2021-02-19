@@ -44,11 +44,17 @@ int isatty(int fd) {
 }
 
 /* strftime adapted from kvik's lua port */
+int _strfmttime_initialised=0;
 size_t
 strftime(char *destination, size_t destination_max, char *format, struct tm *fake_tm)
 {
   char *s, mod;
   Fmt f;
+
+  if(! _strfmttime_initialised) {
+    _strfmttime_initialised = 1;
+    tmfmtinstall();
+  }
 
   Tm *tm = (Tm*)fake_tm;
 
@@ -67,6 +73,7 @@ strftime(char *destination, size_t destination_max, char *format, struct tm *fak
       mod = s[0];
       s++;
     }
+    printf("** s[0] = '%c'\n",s[0]);
     switch(s[0]){
     case 'n': fmtprint(&f, "\n"); break;
     case 't': fmtprint(&f, "\t"); break;
@@ -113,8 +120,10 @@ strftime(char *destination, size_t destination_max, char *format, struct tm *fak
     mod = 0;
   }
   s = fmtstrflush(&f);
+  printf("** s = '%s'\n",s);
   strncpy(destination,s,destination_max);
   free(s);
+  printf("** dest = '%s'\n",destination);
   return strlen(destination);
 }
 
