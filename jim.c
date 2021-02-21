@@ -15877,6 +15877,36 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc, Jim_Obj *const *argv
     const char *val;
 
     if (argc == 1) {
+#ifdef PLAN9
+        Dir *db = dirstat("/env");
+	int fd;
+	if(db == nil) {
+          Jim_SetResultFormatted(interp, "environment variable folder does not exist" );
+	  return JIM_ERR;
+	}
+	free(db); // it exists, let's open the dir.
+	fd = open("/env", OREAD);
+        if(fd == -1) {
+          Jim_SetResultFormatted(interp, "environment variable folder - cannot open" );
+	  return JIM_ERR;
+	}
+        long n = dirreadall(fd, &db);
+         if(n < 0) {
+          Jim_SetResultFormatted(interp, "environment variable folder - cannot open" );
+	  return JIM_ERR;
+	}
+        Jim_Obj *listObjPtr = Jim_NewListObj(interp, NULL, 0);
+	for(long i=0; i<n;i++) {
+	  Dir *c=db+i;
+          Jim_ListAppendElement(interp, listObjPtr, Jim_NewStringObj(interp, c->name , -1));
+          Jim_ListAppendElement(interp, listObjPtr, Jim_NewStringObj(interp, getenv(c->name) , -1));
+	}
+        close(fd);
+	free(db);
+
+        Jim_SetResult(interp, listObjPtr);
+        return JIM_OK;
+#else
         char **e = Jim_GetEnviron();
 
         int i;
@@ -15886,7 +15916,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc, Jim_Obj *const *argv
             const char *equals = strchr(e[i], '=');
 
             if (equals) {
-                Jim_ListAppendElement(interp, listObjPtr, Jim_NewStringObj(interp, e[i],
+                Jim_ListAppendElement(interp, listObjPtr, Jim_NewStringObj(interp, e[i], 
                         equals - e[i]));
                 Jim_ListAppendElement(interp, listObjPtr, Jim_NewStringObj(interp, equals + 1, -1));
             }
@@ -15894,6 +15924,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 
         Jim_SetResult(interp, listObjPtr);
         return JIM_OK;
+#endif
     }
 
     if (argc > 3) {
