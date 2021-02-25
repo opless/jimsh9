@@ -69,7 +69,11 @@ int Jim_OpenForRead(const char *filename);
     #define Jim_Stat __stat64
 
 #else
+#ifdef PLAN9
+    typedef nein_stat jim_stat_t;
+#else
     typedef struct stat jim_stat_t;
+#endif
     #define Jim_Stat stat
 
     #if defined(HAVE_UNISTD_H)

@@ -15,17 +15,6 @@ int __ispunct(int c) { return ispunct(c); }
 int __iscntrl(int c) { return iscntrl(c); }
 
 
-int __stat(const char *name, nein_stat *st){
-Dir *dir = dirstat(name);
-int rc = (dir != NULL);
-if(st) {
-  st->st_size = dir->length;
-  st->st_mode = dir->mode;
-  free(dir);
-}
-return rc;
-}
-
 int errno =0;
 extern char **environ=NULL;
 
@@ -122,5 +111,82 @@ strftime(char *destination, size_t destination_max, char *format, struct tm *fak
   strncpy(destination,s,destination_max);
   free(s);
   return strlen(destination);
+}
+
+int __stat(const char *name, nein_stat *st){
+  Dir *dir = dirstat(name);
+  int rc = (dir != NULL);
+  if(st) {
+    st->st_size = dir->length;
+    st->st_mode = dir->mode;
+    st->st_atime= dir->atime;
+    st->st_ctime= dir->mtime;
+    st->st_mtime= dir->mtime;
+    st->st_nlink= 1;
+
+    free(dir);
+  }
+  return rc;
+}
+
+char *dirname(char *n) {
+  static char empty[] = "";
+  static char root[] = "/";
+  char *s=nil;
+  long slen;
+  if(! n) return nil;
+  slen = strlen(n);
+  if(slen == 0)
+    return empty;
+  // strip trailing '/'s
+  while (slen > 0 && n[slen-1] == '/')
+    slen--;
+  if(slen == 0) return root;
+  s = malloc(slen+1);
+  if(s == nil) return nil;  // urgh, bail
+  strncpy(s,n,slen);
+  return s;
+}
+
+int mkdir(char *n, int mode) {
+  char *p = nil;
+  int f=0, rc=-1;
+
+  if(access(n,AEXIST)) { // entry exists
+    errno = EEXIST;
+    goto mkdir_error;
+  }
+  p = dirname(n);
+  if(access(p,AEXIST)) { // Can't write in a folder that doesn't exist
+    errno = ENOENT;
+    goto mkdir_error;
+  }
+  if(access(p,AWRITE)) { // Can't write to the folder, so can't create
+    errno = EACCES;
+  }
+  f = create(n, OREAD, DMDIR | mode);
+  if(f < 0){
+    errno = EPERM; // permission to create a folder is denied anyway.
+    goto mkdir_error;
+  } else {
+    rc = 0;
+    close(f);
+  }
+mkdir_error:
+  free(p);
+  return rc;
+}
+
+int rename(const char *oldpath, const char *newpath) {
+if(oldpath == NULL || newpath == NULL) {
+  errno = EINVAL;
+  return -1;
+}
+
+//TODO Implement rename.
+
+errno = EINVAL;
+return -1;
+
 }
 

@@ -214,5 +214,48 @@ int Jim_OpenForRead(const char *filename)
 {
     return open(filename, O_RDONLY, 0);
 }
+#elif PLAN9
+int Jim_MakeTempFile(Jim_Interp *interp, const char *filename_template, int unlink_file)
+{
+    int fd;
+    Jim_Obj *filenameObj;
+
+    if (filename_template == NULL) {
+        const char *tmpdir = getenv("TMPDIR");
+        if (tmpdir == NULL || *tmpdir == '\0' || access(tmpdir, W_OK) != 0) {
+            tmpdir = "/tmp/";
+        }
+        filenameObj = Jim_NewStringObj(interp, tmpdir, -1);
+        if (tmpdir[0] && tmpdir[strlen(tmpdir) - 1] != '/') {
+            Jim_AppendString(interp, filenameObj, "/", 1);
+        }
+        Jim_AppendString(interp, filenameObj, "tcl.tmp.XXXXXX", -1);
+    }
+    else {
+        filenameObj = Jim_NewStringObj(interp, filename_template, -1);
+    }
+
+    /* Update the template name directly with the filename */
+    //mask = umask(S_IXUSR | S_IRWXG | S_IRWXO);
+    if (mktemp(filenameObj->bytes) == NULL) {
+        fd = -1;
+    }
+    else {
+        fd = create(filenameObj->bytes, ORDWR, 0700);
+    }
+    //umask(mask);
+    if (fd < 0) {
+        Jim_SetResultErrno(interp, Jim_String(filenameObj));
+        Jim_FreeNewObj(interp, filenameObj);
+        return -1;
+    }
+    if (unlink_file) {
+        remove(Jim_String(filenameObj));
+    }
+
+    Jim_SetResult(interp, filenameObj);
+    return fd;
+}
+
 
 #endif

@@ -14,12 +14,10 @@ EXTENSIONS=\
 	jim-aio.$O \
 	jim-array.$O \
 	jim-clock.$O \
+	jim-file.$O \
 
 
 TODO=\
-	jim-eventloop.$O \
-	jim-exec.$O \
-	jim-file.$O \
 	jim-history.$O \
 	jim-interp.$O \
 	jim-load.$O \
@@ -40,6 +38,8 @@ TODO=\
 
 # WONT PORT
 # this is a posix-y thing, we have no need for it here. jim-tty.$O 
+# don't care about event loops  jim-eventloop.$O 
+# I don't want to spawn external programs jim-exec.$O 
 CFLAGS=-c -p -DPLAN9 -I.
 #CFLAGS=-c -p -DPLAN9 -DHAVE_NO_AUTOCONF -DUSE_LINENOISE -I.
 

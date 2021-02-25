@@ -43,11 +43,13 @@
  * express or implied warranty.
  */
 
+#ifndef PLAN9
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#endif
 
 #include <jimautoconf.h>
 #include <jim-subcmd.h>
@@ -165,13 +167,16 @@ static int StoreStatData(Jim_Interp *interp, Jim_Obj *varName, const jim_stat_t 
 {
     /* Just use a list to store the data */
     Jim_Obj *listObj = Jim_NewListObj(interp, NULL, 0);
-
+#ifndef PLAN9
     AppendStatElement(interp, listObj, "dev", sb->st_dev);
     AppendStatElement(interp, listObj, "ino", sb->st_ino);
+#endif
     AppendStatElement(interp, listObj, "mode", sb->st_mode);
     AppendStatElement(interp, listObj, "nlink", sb->st_nlink);
+#ifndef PLAN9
     AppendStatElement(interp, listObj, "uid", sb->st_uid);
     AppendStatElement(interp, listObj, "gid", sb->st_gid);
+#endif
     AppendStatElement(interp, listObj, "size", sb->st_size);
     AppendStatElement(interp, listObj, "atime", sb->st_atime);
     AppendStatElement(interp, listObj, "mtime", sb->st_mtime);
@@ -482,16 +487,21 @@ static int file_cmd_delete(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
     while (argc--) {
         const char *path = Jim_String(argv[0]);
-
+#ifndef PLAN9
         if (unlink(path) == -1 && errno != ENOENT) {
             if (rmdir(path) == -1) {
+#else
+	if (remove(path) == -1) {
+#endif
                 /* Maybe try using the script helper */
                 if (!force || Jim_EvalPrefix(interp, "file delete force", 1, argv) != JIM_OK) {
                     Jim_SetResultFormatted(interp, "couldn't delete file \"%s\": %s", path,
                         strerror(errno));
                     return JIM_ERR;
                 }
+#ifndef PLAN9
             }
+#endif
         }
         argv++;
     }
@@ -1097,8 +1107,11 @@ static int Jim_CdCmd(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static int Jim_PwdCmd(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
     char *cwd = Jim_Alloc(MAXPATHLEN);
-
+#ifdef PLAN9
+    if (getwd(cwd, MAXPATHLEN) == NULL) {
+#else
     if (getcwd(cwd, MAXPATHLEN) == NULL) {
+#endif
         Jim_SetResultString(interp, "Failed to get pwd", -1);
         Jim_Free(cwd);
         return JIM_ERR;

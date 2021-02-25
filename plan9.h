@@ -23,8 +23,13 @@ typedef long size_t; /* stdint.h */
 
 
 // to get things to compile
+#define EPERM   1      /* Operation not permitted */
+#define ENOENT  2      /* No such file or directory */
 #define EINTR   4      /* Interrupted system call */
 #define EAGAIN 11      /* Try again */
+#define EACCES 13      /* Permission denied */
+#define EEXIST 17      /* File exists */
+#define EINVAL 22      /* Invalid argument */
 #define ENOTTY 25      /* Not a typewriter */
 #define ERANGE 34      /* Math result not representable */
 
@@ -57,14 +62,22 @@ int __isgraph(int c);
 int __ispunct(int c);
 int __iscntrl(int c);
 
-//struct stat { int dummy; } /* stat is often used to figure out if a file exists or not */
+/* stat is often used to figure out if a file exists or not */
+
 typedef struct nein_stat_s {
-	vlong st_size;
-	ulong st_mode;
+        vlong st_size;
+        ulong st_mode;
+        ulong st_atime;
+        ulong st_mtime;
+        ulong st_ctime;
+        ulong st_nlink;
 } nein_stat;
+
 int __stat(const char *name, nein_stat *sb);
 
 #define S_ISDIR(x) ((x & DMDIR) == DMDIR)
+#define S_ISREG(x) (! S_ISDIR(x) )
+
 extern int errno;
 char *strerror(int dummy);
 
@@ -101,6 +114,16 @@ struct tm {
 /* strftime adapted from kvik's lua implementation  */
 size_t strftime(char *destination, size_t destination_max, char *format, struct tm *fake_tm);
 
+/* ACCESS Stuff */
+#define R_OK AREAD
+#define W_OK AWRITE
+#define F_OK AEXIST
+#define X_OK AEXEC
+
+int mkdir(char *n, int mode);
+int rename(const char *oldpath, const char *newpath);
+
+
 
 #define Jim_Errno() errno
 
@@ -110,6 +133,8 @@ size_t strftime(char *destination, size_t destination_max, char *format, struct 
 #define TCL_PLATFORM_PATH_SEPARATOR ":"
 #define TCL_PLATFORM_PLATFORM "plan9"
 #define USE_LINENOISE 1
+
+
 
 #endif
 
