@@ -15,6 +15,7 @@ EXTENSIONS=\
 	jim-array.$O \
 	jim-clock.$O \
 	jim-file.$O \
+	_glob.$O \
 
 
 TODO=\
@@ -29,7 +30,6 @@ TODO=\
 	jim-regexp.$O \
 	jim-signal.$O \
 	jim-syslog.$O \
-	glob.$O \
 	nshelper.$O \
 	oo.$O \
 	stdlib.$O \
